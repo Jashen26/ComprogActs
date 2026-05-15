@@ -9,6 +9,8 @@
 #define alertColor      (Color){ 243, 156, 18, 255 }   // Amber (Pending/Warning)
 #define textColor       (Color){ 45, 52, 54, 255 }    // Dark Gray (Text)
 
+
+
 int main()
 {
 
@@ -17,17 +19,31 @@ int main()
     InitWindow(screenWidth, screenHeight, "Loan Monitoring System");
     SetTargetFPS(60);
 
+
+
+    //declaring buttons(rectangle shaped)
+    Rectangle clientButton = {20,10,80,30};
+    Rectangle paymentButton = {120,10,108,30};
+
+
     // Main Game Loop
     while (!WindowShouldClose())
     { // Detect window close button or ESC key
         // 1. Update Logic (move characters, check collisions)
 
+
         // 2. Drawing Logic
         BeginDrawing();
         ClearBackground(backgroundColor);
+             
+        DrawRectangle(0, 0, screenWidth / 2, screenHeight, backgroundColor);
+        DrawRectangle(0, 0, screenWidth, 50, primaryColor);
 
-        DrawRectangle(0, 0, screenWidth / 2, screenHeight, primaryColor);
-        DrawRectangle(0, 0, screenWidth, 50, secondaryColor);
+        DrawRectangle(20, 10, 80, 30, secondaryColor);//client button
+        DrawText("Client", 28,15,20, textColor);
+        DrawRectangle(120, 10, 108, 30, secondaryColor); //payment button
+        DrawText("Payment", 128,15,20, primaryColor);
+        DrawText("Day 1", 935, 20,  20, RAYWHITE);
 
 
         EndDrawing();
