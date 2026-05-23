@@ -14,19 +14,13 @@ struct client
 };
 
 struct client details[maxClient];
-
-float processLoan(struct client details, float *allowedLoan, float *monthlyInterest)
-{
-    float salary = details.income;
-
-    *allowedLoan = salary * 0.20;
-
-    *monthlyInterest = *allowedLoan * 0.05;
-    return salary;
-}
+struct client acceptClient[maxClient];
+int pending = 0;
+int accepted = 0;
 
 void getUserInfo(int i)
 {
+    int initialLoan;
 
     printf("Enter your Name: ");
     scanf(" %[^\n]", details[i].name);
@@ -78,121 +72,204 @@ void getUserInfo(int i)
     do
     {
         printf("Your loanable amount is %.2f: ", details[i].income * 0.20);
-        int result = scanf("%d", &details[i].loanAmount);
+        int result = scanf("%d", &initialLoan);
         if (result == 0)
         {
             printf("Invalid input!!");
             while (getchar() != '\n')
                 ;
-            details[i].loanAmount = -1;
+            initialLoan = -1;
         }
-        if (details[i].loanAmount > details[i].income * 0.20)
+        else if (initialLoan > details[i].income * 0.20)
         {
             printf("You exceeded your loanable Amount!");
-            while (getchar() != '\n')
-                ;
-            details[i].loanAmount = -1;
+            initialLoan = -1;
         }
-    } while (details[i].loanAmount < 0);
+        else
+        {
+            details[i].loanAmount = initialLoan + (initialLoan * 0.05);
+        }
+
+    } while (initialLoan < 0);
 }
 
-void userInfoDisplay(char *civilStatus[], float allowedLoan, float monthlyInterest, struct client details)
+void userInfoDisplay(char *civilStatus[], struct client details[], int i)
 {
-    printf("\nClient Name: %s\n", details.name);
-    printf("Client Occupation: %s\n", details.ocp);
-    printf("Client Civil Status: %s\n", civilStatus[details.cvs]);
-    printf("Client Phone Number: %d\n", details.phone);
-    printf("Client Email: %s\n", details.email);
-    printf("Client income: %.2f\n", details.income);
+    printf("\nClient Name: %s\n", details[i].name);
+    printf("Client Occupation: %s\n", details[i].ocp);
+    printf("Client Civil Status: %s\n", civilStatus[details[i].cvs]);
+    printf("Client Phone Number: %d\n", details[i].phone);
+    printf("Client Email: %s\n", details[i].email);
+    printf("Client income: %.2f\n", details[i].income);
+
+    float allowedLoan = details[i].income * 0.20;
+    float monthlyInterest = allowedLoan * 0.05;
+
     printf("Client Alloweable Loan: %.2f\n", allowedLoan);
     printf("Client Monthly Interest: %.2f\n", monthlyInterest);
-    printf("Client Loan Amount: %d", details.loanAmount);
+    printf("Client Loan Amount: %d", details[i].loanAmount);
 }
 
-typedef enum
-{
-    home,
-    admin,
-    client,
-    exit_daw,
-} currentView;
 
-typedef enum
+void userInfoAccepted(char *civilStatus[], struct client acceptClient[],int i)
 {
-    addClient = 0,
-    makePayment = 1,
-    back = 2,
-} clientView;
+    printf("\nClient Name: %s\n", acceptClient[i].name);
+    printf("Client Occupation: %s\n", acceptClient[i].ocp);
+    printf("Client Civil Status: %s\n", civilStatus[acceptClient[i].cvs]);
+    printf("Client Phone Number: %d\n", acceptClient[i].phone);
+    printf("Client Email: %s\n", acceptClient[i].email);
+    printf("Client income: %.2f\n", acceptClient[i].income);
 
-int main()
+    float allowedLoan = acceptClient[i].income * 0.20;
+    float monthlyInterest = allowedLoan * 0.05;
+
+    printf("Client Alloweable Loan: %.2f\n", allowedLoan);
+    printf("Client Monthly Interest: %.2f\n", monthlyInterest);
+    printf("Client Loan Amount: %d", acceptClient[i].loanAmount);
+}
+
+
+
+// void makePayment()
+// {
+
+//     printf("%s's balance is %.2f", details[pending].name, details[pendi].loanAmount);
+// }
+
+void clientMenu()
 {
-    int viewChecker = home, clientMenu = -1;
-    int i = 0;
-    float allowedLoan = 0, monthlyInterest = 0;
-    char *civilStatus[] = {"Single", "Married", "Widowed", "Divorsed", "Separated"};
+    int Checker = 0;
+
+    while (1)
+    {
+        puts("-----------Client's Menu");
+        printf("[1] Add Client\n");
+        printf("[2] Make Payment for Client\n");
+        printf("[3] To Main Menu\n");
+        int result = scanf("%d", &Checker);
+
+        if (result != 1)
+        {
+            while (getchar() != '\n')
+                ;
+        }
+
+        switch (Checker)
+        {
+        case 1:
+            getUserInfo(pending);
+            pending++;
+            break;
+        case 2:
+            // makePayment();
+            break;
+        case 3:
+            return;
+        default:
+            puts("Invalid Input!");
+        }
+    }
+}
+
+void viewPendingClient(char *civilStatus[])
+{
+
+    int checker = 0; int i = 0;
+    while(1) {
+        if (pending == 0) {
+            puts("we have no Pending Clients!!");
+        }
+        if (pending < maxClient) {
+            userInfoDisplay(civilStatus,details,i);
+            printf("[1] Accept\n[2] Decline");
+            scanf("%d", &checker);
+        }
+        switch(checker) {
+            case 1: acceptClient[pending] = details[pending];
+                    printf("Accept Successful");
+                    accepted++;
+                    break;
+            case 2: pending = 0;
+                    break;
+        }
+
+
+    }
+
+}
+
+void viewClients(char *civilStatus[])
+{
+    for( int i = 0; i < accepted; i++ ) {
+        userInfoAccepted(civilStatus,acceptClient,i);
+    }
+}
+
+void deleteClient()
+{
+}
+
+void adminMenu(char *civilStatus[])
+{
+    int adminChecker = 0;
 
     while (1)
     {
 
-        puts("-------------\n");
-        printf("[1] Admin\n");
-        printf("[2] Client\n");
-        printf("[3] Exit\n");
-        scanf("%d", &viewChecker);
+        puts("-------------Admin's Menu---------------");
+        printf("[1] View Pending Clients\n");
+        printf("[2] View Current Client\n");
+        printf("[3] Delete a Client\n");
+        int result = scanf("%d", &adminChecker);
 
-        if (viewChecker == exit_daw)
+        if (result != 1)
         {
-            puts("babay.....");
+            while (getchar() != '\n')
+                ;
+        }
+
+        switch (adminChecker)
+        {
+        case 1:viewPendingClient(civilStatus);
+             break;
+        case 2:
+            viewClients(civilStatus);
             break;
+        case 3:
+               deleteClient(); 
+            return;
+        default:
+            puts("Invalid Input!");
         }
+    }
+}
 
-        else if (viewChecker == client)
+int main()
+{
+    int mainChecker = 0;
+    char *civilStatus[] = {"Single", "Married", "Widowed", "Divorsed", "Separated"};
+    while (1)
+    {
+        puts("\n----- Main Menu");
+        printf("[1] Client System\n");
+        printf("[2] Admin System\n");
+        printf("[3] Exit\n");
+        scanf("%d", &mainChecker);
+
+        if (mainChecker == 1)
         {
-
-            printf("[0] Add Client\n");
-            printf("[1] Make Payment for Client\n");
-            printf("[2] To Main Menu\n");
-            scanf("%d", &clientMenu);
-
-            if (clientMenu == addClient)
-            {
-                if (i < maxClient)
-                {
-                    getUserInfo(i);
-                    processLoan(details[i], &allowedLoan, &monthlyInterest);
-                    i++;
-                }
-                else
-                {
-                    printf("storage is max");
-                }
-            }
-            else if (clientMenu == makePayment)
-            {
-                if (i == 0)
-                {
-                    printf("we have no clients yet..");
-                }
-                else
-                {
-                    printf("%s's balance is %d\n", details[i-1].name, details[i-1].loanAmount);
-                    printf("how much would you like to pay?");
-                    int temp = 0;
-                    scanf("%d", &temp);
-                    details[i-1].loanAmount = details[i-1].loanAmount - temp;
-                    printf("payment successful");
-                }
-            }
-            else if (clientMenu == back)
-            {
-            }
+            clientMenu();
         }
-        else if (viewChecker == admin)
+        else if (mainChecker == 2)
         {
+            adminMenu(civilStatus);
+        }
+        else if (mainChecker == 3)
+        {
+            break;
         }
         else
         {
-            puts("invalid input!!");
             while (getchar() != '\n')
                 ;
         }
@@ -207,7 +284,7 @@ int main()
     //     printf("file failed");
     //     return 1;
     // }
-    // userInfoDisplay(civilStatus, allowedLoan, monthlyInterest, details[i]);
+    // userInfoDisplay(civilStatus, details[i]);
 
     // fprintf(fileMaker, "%s\n", details[i].name);
     // fprintf(fileMaker, "%s", details[i].ocp);
