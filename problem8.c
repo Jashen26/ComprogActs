@@ -10,7 +10,8 @@ struct client
     int phone;
     char email[50];
     float income;
-    int loanAmount;
+    float loanAmount;
+    float initialLoan;
 };
 
 struct client details[maxClient];
@@ -20,7 +21,7 @@ int accepted = 0;
 
 void getUserInfo(int i)
 {
-    int initialLoan;
+    float initialLoan;
 
     printf("Enter your Name: ");
     scanf(" %[^\n]", details[i].name);
@@ -72,7 +73,7 @@ void getUserInfo(int i)
     do
     {
         printf("Your loanable amount is %.2f: ", details[i].income * 0.20);
-        int result = scanf("%d", &initialLoan);
+        int result = scanf("%f", &initialLoan);
         if (result == 0)
         {
             printf("Invalid input!!");
@@ -88,6 +89,7 @@ void getUserInfo(int i)
         else
         {
             details[i].loanAmount = initialLoan + (initialLoan * 0.05);
+            details[i].initialLoan = initialLoan;
         }
 
     } while (initialLoan < 0);
@@ -103,15 +105,14 @@ void userInfoDisplay(char *civilStatus[], struct client details[], int i)
     printf("Client income: %.2f\n", details[i].income);
 
     float allowedLoan = details[i].income * 0.20;
-    float monthlyInterest = allowedLoan * 0.05;
+    float monthlyInterest = details[i].initialLoan * 0.05;
 
     printf("Client Alloweable Loan: %.2f\n", allowedLoan);
     printf("Client Monthly Interest: %.2f\n", monthlyInterest);
-    printf("Client Loan Amount: %d", details[i].loanAmount);
+    printf("Client Loan Amount: %.2f", details[i].loanAmount);
 }
 
-
-void userInfoAccepted(char *civilStatus[], struct client acceptClient[],int i)
+void userInfoAccepted(char *civilStatus[], struct client acceptClient[], int i)
 {
     printf("\nClient Name: %s\n", acceptClient[i].name);
     printf("Client Occupation: %s\n", acceptClient[i].ocp);
@@ -121,20 +122,81 @@ void userInfoAccepted(char *civilStatus[], struct client acceptClient[],int i)
     printf("Client income: %.2f\n", acceptClient[i].income);
 
     float allowedLoan = acceptClient[i].income * 0.20;
-    float monthlyInterest = allowedLoan * 0.05;
+    float monthlyInterest = acceptClient[i].initialLoan * 0.05;
 
     printf("Client Alloweable Loan: %.2f\n", allowedLoan);
     printf("Client Monthly Interest: %.2f\n", monthlyInterest);
-    printf("Client Loan Amount: %d", acceptClient[i].loanAmount);
+    printf("Client Loan Amount: %.2f", acceptClient[i].loanAmount);
 }
 
+void makePayment()
+{
+    if (accepted == 0)
+    {
+        printf("\nThere are no Clients in the system.\n");
 
+        return;
+    }
 
-// void makePayment()
-// {
+    printf("Select a Client");
+    for (int i = 0; i < accepted; i++)
+    {
+        printf("\n[%d] %s\n", i + 1, acceptClient[i].name);
+    }
 
-//     printf("%s's balance is %.2f", details[pending].name, details[pendi].loanAmount);
-// }
+    int choice;
+    printf("Enter client number: ");
+    if (scanf("%d", &choice) != 1 || choice < 1 || choice > accepted)
+    {
+        printf("Invalid selection!\n");
+        while (getchar() != '\n')
+            ;
+        return;
+    }
+
+    int targetclient = choice - 1;
+
+    printf("\n%s's current loan balance is: $%.2f\n", acceptClient[targetclient].name, acceptClient[targetclient].loanAmount);
+
+    if (acceptClient[targetclient].loanAmount <= 0)
+    {
+        printf("This client has no remaining balance to pay!\n");
+        return;
+    }
+
+    float payment;
+    printf("Enter payment amount: ");
+    if (scanf("%f", &payment) != 1 || payment <= 0)
+    {
+        printf("Invalid payment amount!\n");
+        while (getchar() != '\n')
+            ;
+        return;
+    }
+
+    if (payment > acceptClient[targetclient].loanAmount)
+    {
+        printf("Payment exceeds balance! Adjusting payment to match remaining balance ($%.2f).\n", acceptClient[targetclient].loanAmount);
+        payment = acceptClient[targetclient].loanAmount;
+    }
+
+    acceptClient[targetclient].loanAmount -= payment;
+    printf("Payment successful! New balance for %s: $%.2f\n", acceptClient[targetclient].name, acceptClient[targetclient].loanAmount);
+    char filename[60];
+    snprintf(filename, sizeof(filename), "Clientfolder/%sclient.txt", acceptClient[accepted - 1].name);
+
+    FILE *fileMaker = fopen(filename, "w");
+    if (fileMaker == NULL)
+    {
+        printf("file failed");
+        return;
+    }
+    // fprintf(fileMaker, "%d", accepted);
+    // fprintf(fileMaker, "Client's order Number: %d ", accepted);
+    fprintf(fileMaker, "Client's Name:%s\n", acceptClient[accepted - 1].name);
+    fprintf(fileMaker, "Balance: %.2f\n", acceptClient[accepted - 1].loanAmount);
+    fclose(fileMaker);
+}
 
 void clientMenu()
 {
@@ -159,10 +221,10 @@ void clientMenu()
         case 1:
             getUserInfo(pending);
             pending++;
-            break;
+            return;
         case 2:
-            // makePayment();
-            break;
+            makePayment();
+            return;
         case 3:
             return;
         default:
@@ -174,34 +236,99 @@ void clientMenu()
 void viewPendingClient(char *civilStatus[])
 {
 
-    int checker = 0; int i = 0;
-    while(1) {
-        if (pending == 0) {
+    int checker = 0;
+    int choice = 0;
+    while (1)
+    {
+        if (pending == 0)
+        {
             puts("we have no Pending Clients!!");
+            return;
         }
-        if (pending < maxClient) {
-            userInfoDisplay(civilStatus,details,i);
-            printf("[1] Accept\n[2] Decline");
+
+        puts("------Choose which client to Entertain----------");
+        for (int j = 0; j < pending; j++)
+        {
+            printf("[%d] %s\n", j + 1, details[j].name);
+        }
+        printf("0 to back in main menu\n");
+        if (scanf("%d", &choice) != 1)
+        {
+            printf("Invalid INPUT!!\n");
+            while (getchar() != '\n')
+                ;
+            continue;
+        }
+
+        if (choice == 0)
+        {
+            return;
+        }
+
+        int clientNumber = choice - 1;
+
+        if (choice >= 1 && choice <= pending)
+        {
+            userInfoDisplay(civilStatus, details, clientNumber);
+            printf("\n[1] Accept\n[2] Decline");
             scanf("%d", &checker);
         }
-        switch(checker) {
-            case 1: acceptClient[pending] = details[pending];
-                    printf("Accept Successful");
-                    accepted++;
-                    break;
-            case 2: pending = 0;
-                    break;
+
+        switch (checker)
+        {
+        case 1:
+            acceptClient[accepted] = details[clientNumber];
+            printf("Accept Successful");
+            accepted++;
+
+            char filename[60];
+            snprintf(filename, sizeof(filename), "Clientfolder/%sclient.txt", acceptClient[accepted - 1].name);
+
+            FILE *fileMaker = fopen(filename, "w");
+            if (fileMaker == NULL)
+            {
+                printf("file failed");
+                return;
+            }
+            // fprintf(fileMaker, "Client's order Number: %d ", accepted);
+            fprintf(fileMaker, "Client's Name:%s\n", acceptClient[accepted - 1].name);
+            fprintf(fileMaker, "Balance: %.2f\n", acceptClient[accepted - 1].loanAmount);
+            fclose(fileMaker);
+
+            for (int i = clientNumber; i < pending - 1; i++)
+            {
+                details[i] = details[i + 1];
+            }
+            pending--;
+
+            return;
+        case 2:
+            for (int i = clientNumber; i < pending - 1; i++)
+            {
+                details[i] = details[i + 1];
+            }
+
+            pending--;
+            return;
+
+        default:
+            printf("Invalid Input!");
         }
-
-
     }
-
 }
-
 void viewClients(char *civilStatus[])
 {
-    for( int i = 0; i < accepted; i++ ) {
-        userInfoAccepted(civilStatus,acceptClient,i);
+    if (accepted > 0)
+    {
+        for (int i = 0; i < accepted; i++)
+        {
+            printf("client[%d]", i + 1);
+            userInfoAccepted(civilStatus, acceptClient, i);
+        }
+    }
+    else
+    {
+        printf("we have no clients yet\n");
     }
 }
 
@@ -230,13 +357,14 @@ void adminMenu(char *civilStatus[])
 
         switch (adminChecker)
         {
-        case 1:viewPendingClient(civilStatus);
-             break;
+        case 1:
+            viewPendingClient(civilStatus);
+            return;
         case 2:
             viewClients(civilStatus);
-            break;
+            return;
         case 3:
-               deleteClient(); 
+            deleteClient();
             return;
         default:
             puts("Invalid Input!");
@@ -246,6 +374,21 @@ void adminMenu(char *civilStatus[])
 
 int main()
 {
+
+    // FILE *fileLoader = fopen("DataBase", "r");
+    // if (fileLoader == NULL)
+    // {
+    //     printf("file failed");
+    //     return 0;
+    // }
+    //     fscanf(fileLoader, "Client's order Number: %d ", accepted);
+    // for (int i = 0; i < accepted; i++)
+    // {
+    //     fscanf(fileLoader, "Client's Name:%s\n", &acceptClient[accepted - 1].name);
+    //     fscanf(fileLoader, "Balance: %.2f\n\n", &acceptClient[accepted - 1].loanAmount);
+    // }
+    // fclose(fileLoader);
+
     int mainChecker = 0;
     char *civilStatus[] = {"Single", "Married", "Widowed", "Divorsed", "Separated"};
     while (1)
@@ -274,21 +417,5 @@ int main()
                 ;
         }
     }
-
-    // char filename[60];
-    // snprintf(filename, sizeof(filename), "Clientfolder/%sclient.txt", details[i].name);
-
-    // FILE *fileMaker = fopen(filename, "w");
-    // if (fileMaker == NULL)
-    // {
-    //     printf("file failed");
-    //     return 1;
-    // }
-    // userInfoDisplay(civilStatus, details[i]);
-
-    // fprintf(fileMaker, "%s\n", details[i].name);
-    // fprintf(fileMaker, "%s", details[i].ocp);
-
-    // fclose(fileMaker);
     return 0;
 }
